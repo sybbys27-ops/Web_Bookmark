@@ -3,7 +3,7 @@
 기존 5페이지 북마크 UI + LocalStorage + GitHub Gist 클라우드 동기화 기능입니다.
 
 ## 구현
-- `■BookMark.html`: 이름·URL 추가, 삭제, 검색, 드래그 정렬, 5페이지 탭, JSON 백업/복원.
+- `index.html`: 이름·URL 추가, 삭제, 검색, 드래그 정렬, 5페이지 탭, JSON 백업/복원.
 - `cloud-sync.js`: 브라우저를 열면 Gist를 1회 읽고, 북마크 변경 후 650ms에 자동 저장. 상태 메시지 표시.
 - `api/bookmarks.js`: Vercel Functions가 GitHub 토큰으로 Gist의 `bookmarks.json`을 읽고 생성·수정.
 - LocalStorage는 로컬 사본이며 최초 불러오기에 실패하면 편집을 차단합니다.
