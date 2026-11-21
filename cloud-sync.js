@@ -2,10 +2,11 @@
 (()=>{
  const api='/api/bookmarks';
  const oldWrite=writePages;
+ let manualRequested=false;
  let ready=false,blocked=false,dirty=false,saving=false,revision=null,timer=null;
  const status=()=>document.getElementById('syncStatus');
  const report=s=>{if(status())status().textContent=s;};
- const lock=disabled=>document.querySelectorAll('#bookmarkForm input,#bookmarkForm button,.page-button,#importButton').forEach(e=>e.disabled=disabled);
+ const lock=disabled=>document.querySelectorAll('#bookmarkForm input,#bookmarkForm button,.page-button,#gistSaveButton').forEach(e=>e.disabled=disabled);
  async function request(method,body){
   const r=await fetch(api,{method,cache:'no-store',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   const data=await r.json().catch(()=>({}));
@@ -20,7 +21,7 @@
  writePages=function(pages){oldWrite(pages);enqueue();};
  async function save(){
   if(!ready||blocked||saving||!dirty)return;
-  saving=true;dirty=false;report('☁️ 저장 중...');
+  saving=true;dirty=false;manualRequested=false;report('☁️ 저장 중...');
   const pages=readPages();
   try{
    const r=await request('PUT',{state:{version:2,pageCount:5,pages},revision});
@@ -31,10 +32,16 @@
    else report('⚠️ 저장 실패: '+e.message);
   }finally{
    saving=false;
-   if(dirty&&!blocked){clearTimeout(timer);timer=setTimeout(save,5000);}
+   if(dirty&&!blocked){clearTimeout(timer);timer=setTimeout(save,manualRequested?0:5000);}
   }
  }
  document.addEventListener('DOMContentLoaded',async()=>{
+  document.getElementById('gistSaveButton').addEventListener('click',()=>{
+   if(!ready||blocked){report('⚠️ Gist 연결을 먼저 확인하세요');return;}
+   manualRequested=true;dirty=true;clearTimeout(timer);
+   if(saving){report('☁️ 현재 저장 후 다시 저장합니다...');return;}
+   void save();
+  });
   lock(true);report('☁️ Gist 불러오는 중...');
   try{
    const r=await request('GET');
