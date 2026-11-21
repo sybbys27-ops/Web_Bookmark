@@ -134,9 +134,7 @@
     <div class="footer-area">
         <div class="info"><span id="syncStatus" role="status" aria-live="polite">☁️ Gist 연결 준비 중...</span><div>☰ 드래그 정렬 · LocalStorage와 Gist 자동 저장</div></div>
         <div class="backup-group">
-            <button type="button" id="exportButton" class="btn-secondary">💾 JSON 저장</button>
-            <button type="button" id="importButton" class="btn-secondary">📂 JSON 불러오기</button>
-            <input type="file" id="fileInput" accept=".json,application/json" style="display: none;">
+            <button type="button" id="gistSaveButton" class="btn-secondary">☁️ Gist 저장</button>
         </div>
     </div>
 </div>
@@ -152,11 +150,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('bookmarkForm').addEventListener('submit', addLink);
         document.getElementById('searchBox').addEventListener('input', filterLinks);
-        document.getElementById('exportButton').addEventListener('click', exportJSON);
-        document.getElementById('importButton').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
-        document.getElementById('fileInput').addEventListener('change', importJSON);
         document.querySelectorAll('.page-button').forEach(button => {
             button.addEventListener('click', () => switchPage(Number(button.dataset.page)));
         });
@@ -306,7 +299,7 @@
             filterLinks();
         } catch (error) {
             console.error(error);
-            alert('저장된 북마크 데이터를 읽을 수 없습니다. JSON 백업 파일을 확인해주세요.');
+            alert('저장된 북마크 데이터를 읽을 수 없습니다. 새로고침하여 Gist 연결을 확인해주세요.');
         }
     }
 
@@ -466,65 +459,7 @@
         });
     }
 
-    function exportJSON() {
-        try {
-            const pages = readPages();
-            if (pages.every(links => links.length === 0)) {
-                alert('저장할 데이터가 없습니다.');
-                return;
-            }
 
-            const backup = {
-                version: 2,
-                pageCount: PAGE_COUNT,
-                pages
-            };
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const downloadUrl = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = downloadUrl;
-            anchor.download = 'my_bookmarks_5_pages.json';
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
-        } catch (error) {
-            alert('북마크를 내보낼 수 없습니다. 저장 데이터를 확인해주세요.');
-        }
-    }
-
-    function importJSON(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const importedPages = validatePageCollection(JSON.parse(e.target.result));
-                if (confirm('기존 5개 페이지의 북마크 데이터가 모두 덮어씌워집니다. 계속하시겠습니까?')) {
-                    writePages(importedPages);
-                    currentPage = 1;
-                    localStorage.setItem(ACTIVE_PAGE_KEY, '1');
-                    document.getElementById('searchBox').value = '';
-                    updatePageButtons();
-                    loadLinks();
-                    alert('성공적으로 불러왔습니다.');
-                }
-            } catch (error) {
-                const message = error instanceof Error ? error.message : '알 수 없는 오류';
-                alert(`JSON 파일을 불러올 수 없습니다. ${message}`);
-            } finally {
-                event.target.value = '';
-            }
-        };
-
-        reader.onerror = function() {
-            alert('JSON 파일을 읽을 수 없습니다.');
-            event.target.value = '';
-        };
-
-        reader.readAsText(file);
-    }
 </script>
 <script src="./cloud-sync.js"></script>
 
