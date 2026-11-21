@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 웹 즐겨찾기</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --container-bg: #ffffff;
+            --primary-color: #333;
+            --accent-color: #007bff;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', AppleSDGothicNeo, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--primary-color);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--container-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        h2 { margin: 0; font-size: 1.2rem; color: #555; text-align: center; }
+
+        .header-area { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header-area h2 { grid-column: 2; }
+        .page-tabs { grid-column: 3; justify-self: end; display: flex; gap: 6px; }
+        .page-button { min-width: 32px; height: 28px; padding: 3px 8px; border: 1px solid #c5c5c5; color: #555; line-height: 1; }
+        .page-button:nth-child(1) { background-color: #b9ef69; }
+        .page-button:nth-child(2) { background-color: #d8eadc; }
+        .page-button:nth-child(3) { background-color: #ffe69a; }
+        .page-button:nth-child(4) { background-color: #cfe4ff; }
+        .page-button:nth-child(5) { background-color: #ead9f7; }
+        .page-button:hover { filter: brightness(0.94); }
+        .page-button.active { border: 2px solid #111; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+
+        /* 입력 및 검색 영역 */
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; outline: none; }
+        input:focus { border-color: var(--accent-color); }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        #siteName { flex: 1; }
+        #siteUrl { flex: 2; }
+        #searchBox { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; background-color: #fafafa; }
+
+        button { padding: 8px 16px; background-color: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
+        /* 리스트 영역 */
+        ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border-color); }
+        li { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #eee; transition: background 0.1s; }
+        li:hover { background-color: #f9f9f9; }
+        li.dragging { opacity: 0.4; }
+        li.drag-over-before { box-shadow: inset 0 2px 0 var(--accent-color); }
+        li.drag-over-after { box-shadow: inset 0 -2px 0 var(--accent-color); }
+
+        .drag-handle { flex: 0 0 auto; margin-right: 9px; color: #bbb; cursor: grab; font-size: 15px; line-height: 1; user-select: none; }
+        .drag-handle:hover { color: var(--accent-color); }
+        .drag-handle:active { cursor: grabbing; }
+        .drag-handle.drag-disabled { cursor: not-allowed; opacity: 0.35; }
+
+        .link-content { flex-grow: 1; display: flex; align-items: center; overflow: hidden; }
+        .link-item { text-decoration: none; color: #333; font-size: 14px; font-weight: 500; display: block; width: 100%; }
+        .link-item:hover { color: var(--accent-color); }
+        .link-url-preview { font-size: 11px; color: #888; margin-left: 10px; font-weight: normal; }
+
+        .delete-btn { background: none; color: #ccc; border: none; font-size: 16px; padding: 0 5px; margin-left: 10px; cursor: pointer; }
+        .delete-btn:hover { color: #ff4d4d; }
+
+        /* 하단 안내 및 백업 영역 추가 */
+        .footer-area { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px; }
+        .info { font-size: 12px; color: #999; }
+        
+        .backup-group { display: flex; gap: 8px; }
+        .btn-secondary { background-color: #6c757d; font-size: 12px; padding: 6px 12px; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
+        @media (max-width: 640px) {
+            .header-area { grid-template-columns: 1fr; }
+            .header-area h2, .page-tabs { grid-column: 1; justify-self: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-area">
+        <h2>🔗 내 웹사이트 모음</h2>
+        <nav class="page-tabs" aria-label="북마크 페이지 선택">
+            <button type="button" class="page-button" data-page="1">1</button>
+            <button type="button" class="page-button" data-page="2">2</button>
+            <button type="button" class="page-button" data-page="3">3</button>
+            <button type="button" class="page-button" data-page="4">4</button>
+            <button type="button" class="page-button" data-page="5">5</button>
+        </nav>
+    </div>
+
+    <form id="bookmarkForm" class="input-group">
+        <label class="sr-only" for="siteName">웹사이트 이름</label>
+        <input type="text" id="siteName" placeholder="웹사이트 이름 (예: 네이버)" maxlength="200" autocomplete="off" required>
+        <label class="sr-only" for="siteUrl">URL 주소</label>
+        <input type="text" id="siteUrl" placeholder="URL 주소 (예: naver.com)" inputmode="url" spellcheck="false" autocomplete="url" required>
+        <button type="submit">추가</button>
+    </form>
+
+    <label class="sr-only" for="searchBox">북마크 검색</label>
+    <input type="search" id="searchBox" placeholder="🔍 이름 또는 주소 검색...">
+
+    <ul id="linkList"></ul>
+
+    <div class="footer-area">
+        <div class="info">☰ 드래그로 순서 변경 · 데이터는 브라우저에 자동 저장됩니다.</div>
+        <div class="backup-group">
+            <button type="button" id="exportButton" class="btn-secondary">💾 JSON 저장</button>
+            <button type="button" id="importButton" class="btn-secondary">📂 JSON 불러오기</button>
+            <input type="file" id="fileInput" accept=".json,application/json" style="display: none;">
+        </div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'myWebLinksPagesV2';
+    const LEGACY_STORAGE_KEY = 'myWebLinks';
+    const ACTIVE_PAGE_KEY = 'myWebLinksActivePage';
+    const PAGE_COUNT = 5;
+    let currentPage = 1;
+    let draggedIndex = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('bookmarkForm').addEventListener('submit', addLink);
+        document.getElementById('searchBox').addEventListener('input', filterLinks);
+        document.getElementById('exportButton').addEventListener('click', exportJSON);
+        document.getElementById('importButton').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        document.getElementById('fileInput').addEventListener('change', importJSON);
+        document.querySelectorAll('.page-button').forEach(button => {
+            button.addEventListener('click', () => switchPage(Number(button.dataset.page)));
+        });
+        currentPage = readSavedPage();
+        updatePageButtons();
+        loadLinks();
+    });
+
+    function normalizeUrl(value) {
+        if (typeof value !== 'string') throw new Error('URL은 문자열이어야 합니다.');
+
+        let url = value.trim();
+        if (!url) throw new Error('URL이 비어 있습니다.');
+        if (/^(javascript|data|vbscript|file|mailto|ftp):/i.test(url)) {
+            throw new Error('http 또는 https 주소만 사용할 수 있습니다.');
+        }
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+        const parsed = new URL(url);
+        if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+            throw new Error('올바른 웹 주소가 아닙니다.');
+        }
+        return parsed.href;
+    }
+
+    function validateLinks(value) {
+        if (!Array.isArray(value)) throw new Error('북마크 목록이 배열 형식이 아닙니다.');
+
+        return value.map((link, index) => {
+            if (!link || typeof link !== 'object' || Array.isArray(link)) {
+                throw new Error(`${index + 1}번째 북마크 형식이 올바르지 않습니다.`);
+            }
+
+            const name = typeof link.name === 'string' ? link.name.trim() : '';
+            if (!name) throw new Error(`${index + 1}번째 북마크 이름이 비어 있습니다.`);
+            if (name.length > 200) throw new Error(`${index + 1}번째 북마크 이름이 너무 깁니다.`);
+
+            return { name, url: normalizeUrl(link.url) };
+        });
+    }
+
+    function emptyPages() {
+        return Array.from({ length: PAGE_COUNT }, () => []);
+    }
+
+    function validatePageCollection(value) {
+        if (Array.isArray(value)) {
+            const pages = emptyPages();
+            pages[0] = validateLinks(value);
+            return pages;
+        }
+
+        if (!value || typeof value !== 'object' || !Array.isArray(value.pages)) {
+            throw new Error('5페이지 북마크 형식이 아닙니다.');
+        }
+        if (value.pages.length > PAGE_COUNT) {
+            throw new Error(`북마크 페이지는 최대 ${PAGE_COUNT}개까지 지원합니다.`);
+        }
+
+        return Array.from({ length: PAGE_COUNT }, (_, index) => {
+            return validateLinks(value.pages[index] ?? []);
+        });
+    }
+
+    function readPages() {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) return validatePageCollection(JSON.parse(savedData));
+
+        const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
+        const pages = legacyData ? validatePageCollection(JSON.parse(legacyData)) : emptyPages();
+        writePages(pages);
+        return pages;
+    }
+
+    function writePages(pages) {
+        const data = {
+            version: 2,
+            pageCount: PAGE_COUNT,
+            pages: validatePageCollection({ pages })
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function readLinks() {
+        return readPages()[currentPage - 1];
+    }
+
+    function writeLinks(links) {
+        const pages = readPages();
+        pages[currentPage - 1] = validateLinks(links);
+        writePages(pages);
+    }
+
+    function readSavedPage() {
+        const page = Number(localStorage.getItem(ACTIVE_PAGE_KEY));
+        return Number.isInteger(page) && page >= 1 && page <= PAGE_COUNT ? page : 1;
+    }
+
+    function switchPage(page) {
+        if (!Number.isInteger(page) || page < 1 || page > PAGE_COUNT || page === currentPage) return;
+
+        endDragging();
+        currentPage = page;
+        localStorage.setItem(ACTIVE_PAGE_KEY, String(page));
+        document.getElementById('searchBox').value = '';
+        updatePageButtons();
+        loadLinks();
+    }
+
+    function updatePageButtons() {
+        document.querySelectorAll('.page-button').forEach(button => {
+            const page = Number(button.dataset.page);
+            const active = page === currentPage;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
+            if (active) button.setAttribute('aria-current', 'page');
+            else button.removeAttribute('aria-current');
+            button.title = `${page}페이지${active ? ' (현재 페이지)' : ''}`;
+        });
+    }
+
+    function reorderLinks(links, sourceIndex, targetIndex, position) {
+        if (!Number.isInteger(sourceIndex) || !Number.isInteger(targetIndex)) {
+            throw new Error('이동할 위치가 올바르지 않습니다.');
+        }
+        if (sourceIndex < 0 || sourceIndex >= links.length || targetIndex < 0 || targetIndex >= links.length) {
+            throw new Error('이동할 위치가 목록 범위를 벗어났습니다.');
+        }
+        if (!['before', 'after'].includes(position) || sourceIndex === targetIndex) return links;
+
+        const reordered = [...links];
+        const [movedLink] = reordered.splice(sourceIndex, 1);
+        let insertIndex = targetIndex;
+        if (sourceIndex < targetIndex) insertIndex -= 1;
+        if (position === 'after') insertIndex += 1;
+        reordered.splice(insertIndex, 0, movedLink);
+        return reordered;
+    }
+
+    function loadLinks() {
+        const list = document.getElementById('linkList');
+        list.replaceChildren();
+
+        try {
+            const links = readLinks();
+            links.forEach((link, index) => createListItem(link, index));
+            filterLinks();
+        } catch (error) {
+            console.error(error);
+            alert('저장된 북마크 데이터를 읽을 수 없습니다. JSON 백업 파일을 확인해주세요.');
+        }
+    }
+
+    function addLink(event) {
+        event.preventDefault();
+        const nameInput = document.getElementById('siteName');
+        const urlInput = document.getElementById('siteUrl');
+
+        try {
+            const newLink = validateLinks([{
+                name: nameInput.value,
+                url: urlInput.value
+            }])[0];
+            const links = readLinks();
+            links.unshift(newLink);
+            writeLinks(links);
+
+            nameInput.value = '';
+            urlInput.value = '';
+            loadLinks();
+            nameInput.focus();
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '북마크를 저장할 수 없습니다.');
+        }
+    }
+
+    function createListItem(link, index) {
+        const list = document.getElementById('linkList');
+        const li = document.createElement('li');
+        const dragHandle = document.createElement('span');
+        const content = document.createElement('div');
+        const anchor = document.createElement('a');
+        const urlPreview = document.createElement('span');
+        const deleteButton = document.createElement('button');
+
+        li.dataset.index = String(index);
+        dragHandle.className = 'drag-handle';
+        dragHandle.textContent = '☰';
+        dragHandle.title = '드래그하여 순서 변경';
+        dragHandle.setAttribute('aria-hidden', 'true');
+        dragHandle.draggable = true;
+        dragHandle.addEventListener('dragstart', event => startDragging(event, index, li));
+        dragHandle.addEventListener('dragend', endDragging);
+
+        content.className = 'link-content';
+        anchor.className = 'link-item';
+        anchor.href = link.url;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.append(document.createTextNode(link.name + ' '));
+
+        urlPreview.className = 'link-url-preview';
+        urlPreview.textContent = '- ' + link.url;
+        anchor.appendChild(urlPreview);
+        content.appendChild(anchor);
+
+        deleteButton.type = 'button';
+        deleteButton.className = 'delete-btn';
+        deleteButton.title = '삭제';
+        deleteButton.setAttribute('aria-label', `${link.name} 삭제`);
+        deleteButton.textContent = '×';
+        deleteButton.addEventListener('click', () => deleteLink(index));
+
+        li.addEventListener('dragover', event => showDropPosition(event, index, li));
+        li.addEventListener('dragleave', event => {
+            if (!li.contains(event.relatedTarget)) clearDropIndicators();
+        });
+        li.addEventListener('drop', event => dropLink(event, index, li));
+
+        li.append(dragHandle, content, deleteButton);
+        list.appendChild(li);
+    }
+
+    function startDragging(event, index, li) {
+        if (document.getElementById('searchBox').value.trim()) {
+            event.preventDefault();
+            return;
+        }
+
+        draggedIndex = index;
+        li.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+    }
+
+    function showDropPosition(event, targetIndex, li) {
+        if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        const rect = li.getBoundingClientRect();
+        const position = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+
+        clearDropIndicators();
+        li.dataset.dropPosition = position;
+        li.classList.add(position === 'before' ? 'drag-over-before' : 'drag-over-after');
+    }
+
+    function dropLink(event, targetIndex, li) {
+        event.preventDefault();
+        if (draggedIndex === null || draggedIndex === targetIndex) {
+            endDragging();
+            return;
+        }
+
+        try {
+            const position = li.dataset.dropPosition || 'before';
+            const links = reorderLinks(readLinks(), draggedIndex, targetIndex, position);
+            writeLinks(links);
+            loadLinks();
+        } catch (error) {
+            alert('북마크 순서를 변경할 수 없습니다. 저장 데이터를 확인해주세요.');
+        } finally {
+            endDragging();
+        }
+    }
+
+    function clearDropIndicators() {
+        document.querySelectorAll('#linkList li').forEach(item => {
+            item.classList.remove('drag-over-before', 'drag-over-after');
+            delete item.dataset.dropPosition;
+        });
+    }
+
+    function endDragging() {
+        document.querySelectorAll('#linkList li').forEach(item => item.classList.remove('dragging'));
+        clearDropIndicators();
+        draggedIndex = null;
+    }
+
+    function deleteLink(index) {
+        if(confirm('정말 삭제하시겠습니까?')) {
+            try {
+                const links = readLinks();
+                if (index < 0 || index >= links.length) return;
+                links.splice(index, 1);
+                writeLinks(links);
+                loadLinks();
+            } catch (error) {
+                alert('북마크를 삭제할 수 없습니다. 저장 데이터를 확인해주세요.');
+            }
+        }
+    }
+
+    function filterLinks() {
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        const items = document.querySelectorAll('#linkList li');
+        const dragDisabled = query.trim().length > 0;
+
+        items.forEach(item => {
+            const text = item.querySelector('.link-item').textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+            const handle = item.querySelector('.drag-handle');
+            handle.draggable = !dragDisabled;
+            handle.classList.toggle('drag-disabled', dragDisabled);
+            handle.title = dragDisabled ? '검색 중에는 순서를 변경할 수 없습니다' : '드래그하여 순서 변경';
+        });
+    }
+
+    function exportJSON() {
+        try {
+            const pages = readPages();
+            if (pages.every(links => links.length === 0)) {
+                alert('저장할 데이터가 없습니다.');
+                return;
+            }
+
+            const backup = {
+                version: 2,
+                pageCount: PAGE_COUNT,
+                pages
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = downloadUrl;
+            anchor.download = 'my_bookmarks_5_pages.json';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+        } catch (error) {
+            alert('북마크를 내보낼 수 없습니다. 저장 데이터를 확인해주세요.');
+        }
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedPages = validatePageCollection(JSON.parse(e.target.result));
+                if (confirm('기존 5개 페이지의 북마크 데이터가 모두 덮어씌워집니다. 계속하시겠습니까?')) {
+                    writePages(importedPages);
+                    currentPage = 1;
+                    localStorage.setItem(ACTIVE_PAGE_KEY, '1');
+                    document.getElementById('searchBox').value = '';
+                    updatePageButtons();
+                    loadLinks();
+                    alert('성공적으로 불러왔습니다.');
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : '알 수 없는 오류';
+                alert(`JSON 파일을 불러올 수 없습니다. ${message}`);
+            } finally {
+                event.target.value = '';
+            }
+        };
+
+        reader.onerror = function() {
+            alert('JSON 파일을 읽을 수 없습니다.');
+            event.target.value = '';
+        };
+
+        reader.readAsText(file);
+    }
+</script>
+
+</body>
+</html>
