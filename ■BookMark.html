@@ -132,7 +132,7 @@
     <ul id="linkList"></ul>
 
     <div class="footer-area">
-        <div class="info">☰ 드래그로 순서 변경 · 데이터는 브라우저에 자동 저장됩니다.</div>
+        <div class="info"><span id="syncStatus" role="status" aria-live="polite">☁️ Gist 연결 준비 중...</span><div>☰ 드래그 정렬 · LocalStorage와 Gist 자동 저장</div></div>
         <div class="backup-group">
             <button type="button" id="exportButton" class="btn-secondary">💾 JSON 저장</button>
             <button type="button" id="importButton" class="btn-secondary">📂 JSON 불러오기</button>
@@ -526,6 +526,7 @@
         reader.readAsText(file);
     }
 </script>
+<script src="./cloud-sync.js"></script>
 
 </body>
 </html>
